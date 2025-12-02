@@ -44,3 +44,18 @@ type StatResult struct {
 	BHDL  string `json:"bhdl"`
 	Count int64  `json:"count"`
 }
+
+// BatchStatResult --- 在 internal/model/nature_data.go 中补充一个 DTO 结构体 ---
+// (请把这个加到 model 文件夹下的文件中，用于接收批次统计结果)
+type BatchStatResult struct {
+	PC    string  `json:"pc"`
+	Count int64   `json:"count"`
+	Area  float64 `json:"area"`
+}
+
+// RegionStatResult 用于接收行政区统计结果
+type RegionStatResult struct {
+	RegionName string  `json:"region_name"` // 可能是省名、市名或县名
+	Count      int64   `json:"count"`
+	Area       float64 `json:"area"`
+}
