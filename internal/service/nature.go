@@ -24,6 +24,8 @@ type NatureService interface {
 	GetProtectedAreaStats(req model.NatureQueryRequest) (map[string]interface{}, error)
 	GetSpotList(req model.NatureQueryRequest) (map[string]interface{}, error)
 	GetTransitionStats(req model.NatureQueryRequest) ([]model.TransitionStat, error)
+
+	GetLargeSpots(req model.AlertQueryRequest) (map[string]interface{}, error)
 }
 
 type natureService struct {
@@ -272,4 +274,14 @@ func (s *natureService) buildPagedResponse(list interface{}, total int64, page i
 			"page_size":    pageSize,   // 每页大小
 		},
 	}
+}
+
+func (s *natureService) GetLargeSpots(req model.AlertQueryRequest) (map[string]interface{}, error) {
+	list, total, err := s.store.GetLargeSpots(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 复用之前的分页组装逻辑
+	return s.buildPagedResponse(list, total, req.Page, req.PageSize), nil
 }

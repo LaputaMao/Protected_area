@@ -135,3 +135,26 @@ func (h *NatureHandler) GetTransitionStats(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, data)
 }
+
+// GetLargeSpots 大面积图斑预警接口
+func (h *NatureHandler) GetLargeSpots(c *gin.Context) {
+	var req model.AlertQueryRequest
+	// 绑定参数
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 简单的业务校验 (可选)
+	if req.AlertArea < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "预警面积必须大于等于0"})
+		return
+	}
+
+	data, err := h.srv.GetLargeSpots(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}

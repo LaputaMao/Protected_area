@@ -21,6 +21,8 @@ type NatureStore interface {
 	GetProtectedAreaStats(req model.NatureQueryRequest) ([]model.ProtectedAreaStat, int64, error)
 	GetSpotList(req model.NatureQueryRequest) ([]model.SpotListItem, int64, error)
 	GetTransitionStats(req model.NatureQueryRequest) ([]model.TransitionStat, error)
+
+	GetLargeSpots(req model.AlertQueryRequest) ([]model.AlertSpotItem, int64, error)
 }
 
 // natureStore 结构体实现接口
@@ -185,4 +187,28 @@ func (s *natureStore) GetTransitionStats(req model.NatureQueryRequest) ([]model.
 		Scan(&results).Error
 
 	return results, err
+}
+
+func (s *natureStore) GetLargeSpots(req model.AlertQueryRequest) ([]model.AlertSpotItem, int64, error) {
+	var results []model.AlertSpotItem
+	var total int64
+
+	// 1. 构建基础查询
+	// 筛选条件: 年份匹配 AND 面积 > 阈值
+	query := s.db.Model(&model.NatureData{}).
+		Where("year = ? AND BHMJ > ?", req.Year, req.AlertArea)
+
+	// 2. 计算总数 (用于分页)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 3. 查询列表 (指定字段映射到 DTO)
+	offset := (req.Page - 1) * req.PageSize
+	err := query.Select("THBHDMC, TBBH, BHMJ, THSHENG").
+		Order("BHMJ DESC").
+		Limit(req.PageSize).Offset(offset).
+		Scan(&results).Error
+
+	return results, total, err
 }

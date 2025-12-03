@@ -32,6 +32,9 @@ func InitRouter(natureHandler *handler.NatureHandler) *gin.Engine {
 
 		// 6. 流向分析 (饼图)
 		api.GET("/stats/transition", natureHandler.GetTransitionStats)
+
+		// 7. 大图斑预警 : /api/stats/alert/large-spots?year=2022&alert_area=500&page=1
+		api.GET("/stats/alert/large-spots", natureHandler.GetLargeSpots)
 	}
 
 	return r

@@ -76,6 +76,14 @@ type NatureQueryRequest struct {
 	PageSize int `form:"page_size,default=10"`
 }
 
+// AlertQueryRequest 预警接口专用请求参数
+type AlertQueryRequest struct {
+	Year      string  `form:"year" binding:"required"`       // 年份
+	AlertArea float64 `form:"alert_area" binding:"required"` // 预警面积阈值
+	Page      int     `form:"page,default=1"`
+	PageSize  int     `form:"page_size,default=10"`
+}
+
 // ProtectedAreaStat 接口1的返回结构
 type ProtectedAreaStat struct {
 	Name  string  `json:"name"`  // 保护地名称
@@ -99,4 +107,12 @@ type TransitionStat struct {
 	Area       float64 `json:"area"`        // 面积
 	CountRatio float64 `json:"count_ratio"` // 个数占比 (%)
 	AreaRatio  float64 `json:"area_ratio"`  // 面积占比 (%)
+}
+
+// AlertSpotItem 预警图斑返回项 (DTO)
+type AlertSpotItem struct {
+	THBHDMC string  `json:"thbhdmc"` // 保护地名称
+	TBBH    string  `json:"tbbh"`    // 图斑编号
+	BHMJ    float64 `json:"bhmj"`    // 图斑面积
+	THSHENG string  `json:"thsheng"` // 所属省份
 }
