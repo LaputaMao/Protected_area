@@ -1,6 +1,7 @@
 package service
 
 import (
+	"ProtectedArea/internal/model"
 	"ProtectedArea/internal/store"
 	"fmt"
 )
@@ -19,6 +20,10 @@ type NatureService interface {
 	GetDamageAnalysisByBatch(year string) (map[string]map[string]interface{}, error)
 
 	GetAdministrativeStats(year, scope, name string) (interface{}, error)
+
+	GetProtectedAreaStats(req model.NatureQueryRequest) (map[string]interface{}, error)
+	GetSpotList(req model.NatureQueryRequest) (map[string]interface{}, error)
+	GetTransitionStats(req model.NatureQueryRequest) ([]model.TransitionStat, error)
 }
 
 type natureService struct {
@@ -199,4 +204,72 @@ func (s *natureService) GetAdministrativeStats(year, scope, name string) (interf
 	}
 
 	return response, nil
+}
+
+// GetProtectedAreaStats 接口1 Service
+func (s *natureService) GetProtectedAreaStats(req model.NatureQueryRequest) (map[string]interface{}, error) {
+	list, total, err := s.store.GetProtectedAreaStats(req)
+	if err != nil {
+		return nil, err
+	}
+	// 使用辅助函数返回
+	return s.buildPagedResponse(list, total, req.Page, req.PageSize), nil
+}
+
+// GetSpotList 接口2 Service
+func (s *natureService) GetSpotList(req model.NatureQueryRequest) (map[string]interface{}, error) {
+	list, total, err := s.store.GetSpotList(req)
+	if err != nil {
+		return nil, err
+	}
+	// 使用辅助函数返回
+	return s.buildPagedResponse(list, total, req.Page, req.PageSize), nil
+}
+
+// GetTransitionStats 接口3 Service: 计算占比
+func (s *natureService) GetTransitionStats(req model.NatureQueryRequest) ([]model.TransitionStat, error) {
+	stats, err := s.store.GetTransitionStats(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 1. 计算总数和总面积
+	var totalCount int64
+	var totalArea float64
+	for _, item := range stats {
+		totalCount += item.Count
+		totalArea += item.Area
+	}
+
+	// 2. 计算每个条目的占比
+	for i := range stats {
+		if totalCount > 0 {
+			stats[i].CountRatio = float64(stats[i].Count) / float64(totalCount) * 100
+		}
+		if totalArea > 0 {
+			stats[i].AreaRatio = stats[i].Area / totalArea * 100
+		}
+	}
+
+	return stats, nil
+}
+
+// buildPagedResponse 构建带有详细分页信息的返回结构
+func (s *natureService) buildPagedResponse(list interface{}, total int64, page int, pageSize int) map[string]interface{} {
+	// 计算总页数：向上取整
+	// 算法原理: (total + pageSize - 1) / pageSize
+	totalPages := 0
+	if pageSize > 0 {
+		totalPages = int((total + int64(pageSize) - 1) / int64(pageSize))
+	}
+
+	return map[string]interface{}{
+		"list": list,
+		"pagination": map[string]interface{}{
+			"total":        total,      // 总条数
+			"current_page": page,       // 当前页
+			"total_pages":  totalPages, // 总页数
+			"page_size":    pageSize,   // 每页大小
+		},
+	}
 }

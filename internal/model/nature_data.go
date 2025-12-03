@@ -59,3 +59,44 @@ type RegionStatResult struct {
 	Count      int64   `json:"count"`
 	Area       float64 `json:"area"`
 }
+
+// NatureQueryRequest 统一的查询参数结构体
+type NatureQueryRequest struct {
+	Year          string `form:"year" binding:"required"`  // 年份 (必选)
+	Scope         string `form:"scope" binding:"required"` // 查询范围: province, city, county (必选)
+	RegionName    string `form:"region_name"`              // 行政区名称 (可选)
+	ProtectedType string `form:"protected_type"`           // 保护地类型 (可选)
+	ChangeType    string `form:"change_type"`              // 变化地类 (可选)
+
+	// 接口3 专用
+	QLX string `form:"qlx"` // 前地类 (接口3必选)
+
+	// 分页参数
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=10"`
+}
+
+// ProtectedAreaStat 接口1的返回结构
+type ProtectedAreaStat struct {
+	Name  string  `json:"name"`  // 保护地名称
+	Count int64   `json:"count"` // 图斑个数
+	Area  float64 `json:"area"`  // 面积
+}
+
+// SpotListItem 接口2专用：精简的图斑明细对象
+// 只包含 TBBH, QLX, HLX, BHDL，这样 JSON 序列化时就只有这四个字段
+type SpotListItem struct {
+	TBBH string `json:"tbbh"`
+	QLX  string `json:"qlx"`
+	HLX  string `json:"hlx"`
+	BHDL string `json:"bhdl"`
+}
+
+// TransitionStat 接口3的返回结构
+type TransitionStat struct {
+	HLX        string  `json:"hlx"`         // 后地类
+	Count      int64   `json:"count"`       // 个数
+	Area       float64 `json:"area"`        // 面积
+	CountRatio float64 `json:"count_ratio"` // 个数占比 (%)
+	AreaRatio  float64 `json:"area_ratio"`  // 面积占比 (%)
+}

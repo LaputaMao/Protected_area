@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"ProtectedArea/internal/model"
 	"ProtectedArea/internal/service"
 	"net/http"
 
@@ -78,5 +79,59 @@ func (h *NatureHandler) GetRegionStats(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, data)
+}
+
+// GetProtectedAreaStats 接口1: 保护地统计
+func (h *NatureHandler) GetProtectedAreaStats(c *gin.Context) {
+	var req model.NatureQueryRequest
+	// ShouldBindQuery 自动把 URL 参数绑定到结构体
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	data, err := h.srv.GetProtectedAreaStats(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+// GetSpotList 接口2: 图斑明细
+func (h *NatureHandler) GetSpotList(c *gin.Context) {
+	var req model.NatureQueryRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	data, err := h.srv.GetSpotList(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+// GetTransitionStats 接口3: 流向分析 (饼图)
+func (h *NatureHandler) GetTransitionStats(c *gin.Context) {
+	var req model.NatureQueryRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// 接口3 必填 qlx
+	if req.QLX == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "前地类(qlx)参数必填"})
+		return
+	}
+
+	data, err := h.srv.GetTransitionStats(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		return
+	}
 	c.JSON(http.StatusOK, data)
 }

@@ -23,6 +23,15 @@ func InitRouter(natureHandler *handler.NatureHandler) *gin.Engine {
 
 		// 3. 行政区划统计: /api/stats/region?year=2025&scope=province&name=河北省
 		api.GET("/stats/region", natureHandler.GetRegionStats)
+
+		// 4. 保护地统计
+		api.GET("/stats/protected-area", natureHandler.GetProtectedAreaStats)
+
+		// 5. 图斑明细
+		api.GET("/stats/spot-list", natureHandler.GetSpotList)
+
+		// 6. 流向分析 (饼图)
+		api.GET("/stats/transition", natureHandler.GetTransitionStats)
 	}
 
 	return r

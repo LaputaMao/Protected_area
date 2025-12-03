@@ -17,6 +17,10 @@ type NatureStore interface {
 	// filterCol: 筛选条件的列名 (比如 THSHENG)，如果没有筛选则为空字符串
 	// filterVal: 筛选条件的值 (比如 "河北省")
 	GetRegionStats(year string, groupCol string, filterCol string, filterVal string) ([]model.RegionStatResult, error)
+
+	GetProtectedAreaStats(req model.NatureQueryRequest) ([]model.ProtectedAreaStat, int64, error)
+	GetSpotList(req model.NatureQueryRequest) ([]model.SpotListItem, int64, error)
+	GetTransitionStats(req model.NatureQueryRequest) ([]model.TransitionStat, error)
 }
 
 // natureStore 结构体实现接口
@@ -89,6 +93,96 @@ func (s *natureStore) GetRegionStats(year string, groupCol string, filterCol str
 
 	// 执行分组和查询
 	err := tx.Group(groupCol).Scan(&results).Error
+
+	return results, err
+}
+
+// buildCommonQuery 构建公共的筛选条件
+func (s *natureStore) buildCommonQuery(req model.NatureQueryRequest) *gorm.DB {
+	tx := s.db.Model(&model.NatureData{}).Where("year = ?", req.Year)
+
+	// 动态处理行政区范围
+	if req.RegionName != "" {
+		switch req.Scope {
+		case "province":
+			tx = tx.Where("THSHENG = ?", req.RegionName)
+		case "city":
+			tx = tx.Where("THSHI = ?", req.RegionName)
+		case "county":
+			tx = tx.Where("THXIAN = ?", req.RegionName)
+		}
+	}
+	// 可选筛选
+	if req.ProtectedType != "" {
+		tx = tx.Where("BHDLX = ?", req.ProtectedType)
+	}
+	if req.ChangeType != "" {
+		tx = tx.Where("BHDL = ?", req.ChangeType)
+	}
+
+	return tx
+}
+
+// GetProtectedAreaStats 接口1: 按保护地分组统计 (带分页)
+func (s *natureStore) GetProtectedAreaStats(req model.NatureQueryRequest) ([]model.ProtectedAreaStat, int64, error) {
+	var results []model.ProtectedAreaStat
+	var total int64
+
+	// 1. 复用筛选条件
+	query := s.buildCommonQuery(req)
+
+	// 2. 计算总组数 (用于前端分页显示总页数)
+	// 注意：这里统计的是 DISTINCT THBHDMC 的数量
+	if err := query.Distinct("THBHDMC").Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 3. 执行分组查询 + 分页
+	offset := (req.Page - 1) * req.PageSize
+	err := query.Select("THBHDMC as name, count(*) as count, sum(BHMJ) as area").
+		Group("THBHDMC").
+		Limit(req.PageSize).Offset(offset).
+		Scan(&results).Error
+
+	return results, total, err
+}
+
+// GetSpotList 接口2: 获取图斑明细列表 (带分页)
+func (s *natureStore) GetSpotList(req model.NatureQueryRequest) ([]model.SpotListItem, int64, error) {
+	var results []model.SpotListItem // <--- 换成新的精简结构体
+	var total int64
+
+	query := s.buildCommonQuery(req)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (req.Page - 1) * req.PageSize
+
+	// GORM 会自动把查询到的字段映射到 SpotListItem 的同名字段上
+	err := query.Select("TBBH, QLX, HLX, BHDL").
+		Limit(req.PageSize).Offset(offset).
+		Scan(&results).Error
+
+	return results, total, err
+}
+
+// GetTransitionStats 接口3: 前地类 -> 后地类 流向统计 (不分页，计算占比)
+func (s *natureStore) GetTransitionStats(req model.NatureQueryRequest) ([]model.TransitionStat, error) {
+	var results []model.TransitionStat
+
+	query := s.buildCommonQuery(req)
+
+	// 额外增加前地类筛选
+	if req.QLX != "" {
+		query = query.Where("QLX = ?", req.QLX)
+	}
+
+	// 按后地类分组统计
+	err := query.Select("HLX, count(*) as count, sum(BHMJ) as area").
+		Group("HLX").
+		Scan(&results).Error
 
 	return results, err
 }
