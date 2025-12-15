@@ -4,9 +4,28 @@ import (
 	"ProtectedArea/internal/model"
 	"ProtectedArea/internal/service"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
+
+// ProtectedTypeMap 定义了中文保护地类型到英文缩写的映射
+var ProtectedTypeMap = map[string]string{
+	"NP":               "NP", // 允许直接传英文
+	"NR":               "NR",
+	"FP":               "FP",
+	"WP":               "WP",
+	"GP":               "GP",
+	"DP":               "DP",
+	"SH":               "SH",
+	"国家公园":         "NP",
+	"国家级自然保护区": "NR",
+	"森林公园":         "FP",
+	"湿地公园":         "WP",
+	"地质公园":         "GP",
+	"荒漠公园":         "DP",
+	"风景名胜区":       "SH",
+}
 
 type NatureHandler struct {
 	srv service.NatureService
@@ -91,6 +110,16 @@ func (h *NatureHandler) GetProtectedAreaStats(c *gin.Context) {
 		return
 	}
 
+	// 1. 预处理 ProtectedType 字段
+	if req.ProtectedType != "" {
+		// 建议先进行 trim 和 to upper/lower，以防前端传入空格或大小写不一致
+		protectedTypeKey := strings.TrimSpace(req.ProtectedType)
+
+		// 查找映射表并更新请求结构体字段
+		// 注意：这里调用的是前面定义的 util.MapProtectedType 函数
+		req.ProtectedType = MapProtectedType(protectedTypeKey)
+	}
+
 	data, err := h.srv.GetProtectedAreaStats(req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
@@ -105,6 +134,16 @@ func (h *NatureHandler) GetSpotList(c *gin.Context) {
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// 1. 预处理 ProtectedType 字段
+	if req.ProtectedType != "" {
+		// 建议先进行 trim 和 to upper/lower，以防前端传入空格或大小写不一致
+		protectedTypeKey := strings.TrimSpace(req.ProtectedType)
+
+		// 查找映射表并更新请求结构体字段
+		// 注意：这里调用的是前面定义的 util.MapProtectedType 函数
+		req.ProtectedType = MapProtectedType(protectedTypeKey)
 	}
 
 	data, err := h.srv.GetSpotList(req)
@@ -126,6 +165,16 @@ func (h *NatureHandler) GetTransitionStats(c *gin.Context) {
 	if req.QLX == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "前地类(qlx)参数必填"})
 		return
+	}
+
+	// 1. 预处理 ProtectedType 字段
+	if req.ProtectedType != "" {
+		// 建议先进行 trim 和 to upper/lower，以防前端传入空格或大小写不一致
+		protectedTypeKey := strings.TrimSpace(req.ProtectedType)
+
+		// 查找映射表并更新请求结构体字段
+		// 注意：这里调用的是前面定义的 util.MapProtectedType 函数
+		req.ProtectedType = MapProtectedType(protectedTypeKey)
 	}
 
 	data, err := h.srv.GetTransitionStats(req)
@@ -179,4 +228,12 @@ func (h *NatureHandler) GetPatchImage(c *gin.Context) {
 
 	// Gin 自带的方法，会自动设置 Content-Type 并流式传输文件
 	c.File(filePath)
+}
+
+func MapProtectedType(chineseName string) string {
+	// 检查映射表，如果找到则返回英文缩写，否则返回原始输入
+	if abbr, ok := ProtectedTypeMap[chineseName]; ok {
+		return abbr
+	}
+	return chineseName // 如果找不到，返回原始值，让后续查询逻辑处理错误
 }
