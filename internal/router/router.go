@@ -35,6 +35,9 @@ func InitRouter(natureHandler *handler.NatureHandler) *gin.Engine {
 
 		// 7. 大图斑预警 : /api/stats/alert/large-spots?year=2022&alert_area=500&page=1
 		api.GET("/stats/alert/large-spots", natureHandler.GetLargeSpots)
+
+		// 8. 获取图斑图片: /api/image?tbbh=110109202202NR001
+		api.GET("/image", natureHandler.GetPatchImage)
 	}
 
 	return r

@@ -4,6 +4,7 @@ import (
 	"ProtectedArea/internal/model"
 	"ProtectedArea/internal/store"
 	"fmt"
+	"os"
 )
 
 // --- 在文件顶部定义常量 ---
@@ -26,6 +27,8 @@ type NatureService interface {
 	GetTransitionStats(req model.NatureQueryRequest) ([]model.TransitionStat, error)
 
 	GetLargeSpots(req model.AlertQueryRequest) (map[string]interface{}, error)
+
+	GetImagePath(tbbh string) (string, bool) // 返回路径和是否存在
 }
 
 type natureService struct {
@@ -284,4 +287,23 @@ func (s *natureService) GetLargeSpots(req model.AlertQueryRequest) (map[string]i
 
 	// 复用之前的分页组装逻辑
 	return s.buildPagedResponse(list, total, req.Page, req.PageSize), nil
+}
+
+// GetImagePath 查找图片文件路径
+func (s *natureService) GetImagePath(tbbh string) (string, bool) {
+	// 图片存放的根目录
+	baseDir := "./image/"
+
+	// 支持的后缀名列表，你可以根据实际情况添加 .jpeg 等
+	extensions := []string{".jpg", ".png", ".jpeg"}
+
+	for _, ext := range extensions {
+		filePath := baseDir + tbbh + ext
+		// os.Stat 用于获取文件信息，如果 err == nil 说明文件存在
+		if _, err := os.Stat(filePath); err == nil {
+			return filePath, true
+		}
+	}
+
+	return "", false
 }

@@ -158,3 +158,25 @@ func (h *NatureHandler) GetLargeSpots(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, data)
 }
+
+func (h *NatureHandler) GetPatchImage(c *gin.Context) {
+	// 1. 获取参数
+	tbbh := c.Query("tbbh")
+	if tbbh == "" {
+		c.String(http.StatusBadRequest, "图斑编号不能为空")
+		return
+	}
+
+	// 2. 调用 Service 查找文件
+	filePath, exists := h.srv.GetImagePath(tbbh)
+
+	// 3. 根据结果返回
+	if !exists {
+		// 按照你的要求，返回纯文本
+		c.String(http.StatusOK, "暂无图片")
+		return
+	}
+
+	// Gin 自带的方法，会自动设置 Content-Type 并流式传输文件
+	c.File(filePath)
+}
